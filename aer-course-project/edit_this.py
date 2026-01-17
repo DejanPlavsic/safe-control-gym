@@ -1,4 +1,4 @@
-"""Write your proposed algorithm.
+so """Write your proposed algorithm.
 [NOTE]: The idea for the final project is to plan the trajectory based on a sequence of gates 
 while considering the uncertainty of the obstacles. The students should show that the proposed 
 algorithm is able to safely navigate a quadrotor to complete the task in both simulation and
@@ -125,12 +125,13 @@ class Controller():
         # REPLACE THIS (START) ##
         #########################
         ## generate waypoints for planning
-
+        
+        '''
         # Call a function in module `example_custom_utils`.
-        ecu.exampleFunction()
+        #ecu.exampleFunction() # currently function is notn used and does nothing so I commented it out
 
-        # initial waypoint
-        if use_firmware:
+        # initial waypoint (initial waypoint is like the starting position, kinda weird but 0 is for x, 2 is for y, and 4 appears to be for z. Not sure where this initial observation is coming form))
+        if use_firmware: # honestly not too sure what "use_formware" means but it ajusts the starting height of the drone, depensing on if it's on or off
             waypoints = [(self.initial_obs[0], self.initial_obs[2], initial_info["gate_dimensions"]["tall"]["height"])]  # Height is hardcoded scenario knowledge.
         else:
             waypoints = [(self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])]
@@ -142,20 +143,62 @@ class Controller():
         waypoints.append((-0.5,  0.0, 2.0))
         waypoints.append((-0.5,  1.0, 2.0))
         waypoints.append((-0.5,  2.0, 2.0))
-        waypoints.append([initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4]])
+        waypoints.append([initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4]]) # I have 0 clue where this x_refernce is comong from 
 
         # Polynomial fit.
         self.waypoints = np.array(waypoints)
-        deg = 6
-        t = np.arange(self.waypoints.shape[0])
+        deg = 6 # 6th degree polynomial fit 
+        t = np.arange(self.waypoints.shape[0]) # t DOESNT represent TIME, just a counter for the waypoints, but it gets converted to time like 5 lines down
         fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
         fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
         fz = np.poly1d(np.polyfit(t, self.waypoints[:,2], deg))
         duration = 15
-        t_scaled = np.linspace(t[0], t[-1], int(duration*self.CTRL_FREQ))
+        t_scaled = np.linspace(t[0], t[-1], int(duration*self.CTRL_FREQ)) % t converted to actual time
         self.ref_x = fx(t_scaled)
         self.ref_y = fy(t_scaled)
         self.ref_z = fz(t_scaled)
+        '''
+
+        # Above is the provided example code, now I will try to make the circle
+
+        # Attempt #1: Using sympy to define the path (not efficient but it works)
+        '''
+        # initial waypoint (initial waypoint is like the starting position, kinda weird but 0 is for x, 2 is for y, and 4 appears to be for z. Not sure where this initial observation is coming form))
+        t_steps = 30 # 30 steps for the circle
+        circle_radius = 1 # m
+        circle_center = (0, -3, 1) # m
+        import sympy as sp
+        angle = sp.Symbol('angle') # defining angle as a variable
+
+        # defining the functions of the path
+        func_x = sp.cos(angle)*radius + circle_center[0]
+        func_y = sp.sin(angle)*radius + circle_center[1]
+        func_z = circle_center[2]
+        
+        # adding sampling points info
+        duration = 15 # s (try making this faster after I'm curious what will happen)
+        t_scaled = np.linspace(t[0], t[-1], int(duration*self.CTRL_FREQ)) # t converted to actual time
+        angle_values = np.linspace(0, 2*np.pi, t_steps)
+        
+        self.ref_x = func_x(angle_values)
+        self.ref_y = func_y(angle_values)
+        self.ref_z = np.ones(len(t_scaled))*circle_center[2]
+        '''
+
+        # Attempt #2: Using numpy to define the path (more efficient)
+        circle_radius = 1 # m
+        circle_center = (0, -3, 1) # m
+        
+        # adding sampling points info
+        duration = 15 # s (try making this faster after I'm curious what will happen)
+        t_scaled = np.linspace(0, duration, int(duration*self.CTRL_FREQ))
+        angle_values = np.linspace(0, 2*np.pi, int(duration*self.CTRL_FREQ))
+        
+        # defining the functions of the path
+        self.ref_x = np.cos(angle_values)*circle_radius + circle_center[0]
+        self.ref_y = np.sin(angle_values)*circle_radius + circle_center[1]
+        self.ref_z = np.ones(len(angle_values)) * circle_center[2]
+
 
         #########################
         # REPLACE THIS (END) ####
