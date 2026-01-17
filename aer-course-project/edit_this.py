@@ -1,4 +1,4 @@
-so """Write your proposed algorithm.
+"""Write your proposed algorithm.
 [NOTE]: The idea for the final project is to plan the trajectory based on a sequence of gates 
 while considering the uncertainty of the obstacles. The students should show that the proposed 
 algorithm is able to safely navigate a quadrotor to complete the task in both simulation and
@@ -184,7 +184,7 @@ class Controller():
         self.ref_y = func_y(angle_values)
         self.ref_z = np.ones(len(t_scaled))*circle_center[2]
         '''
-
+        '''
         # Attempt #2: Using numpy to define the path (more efficient)
         circle_radius = 1 # m
         circle_center = (0, -3, 1) # m
@@ -198,6 +198,26 @@ class Controller():
         self.ref_x = np.cos(angle_values)*circle_radius + circle_center[0]
         self.ref_y = np.sin(angle_values)*circle_radius + circle_center[1]
         self.ref_z = np.ones(len(angle_values)) * circle_center[2]
+        '''
+        # this version above doesn't work since you need waypoints for this code to work
+        # Attempt #3: Using Waypoints
+        circle_radius = 1 # m
+        circle_center = (0, -3, 1) # m
+        t = np.arange(30)
+        
+        # adding sampling points info
+        duration = 15 # s (try making this faster after I'm curious what will happen)
+        t_scaled = np.linspace(0, duration, int(duration*self.CTRL_FREQ))
+        angle_values = np.linspace(0, 2*np.pi, int(duration*self.CTRL_FREQ))
+        
+        # defining the functions of the path
+        self.ref_x = np.cos(angle_values)*circle_radius + circle_center[0]
+        self.ref_y = np.sin(angle_values)*circle_radius + circle_center[1]
+        self.ref_z = np.ones(len(angle_values)) * circle_center[2]
+
+        self.waypoints = np.array([
+            [circle_center[0], circle_center[1], circle_center[2]],
+            ])
 
 
         #########################
