@@ -1,3 +1,5 @@
+# similar to final_project.py but there are differences.
+
 """Base script.
 
 Run as:

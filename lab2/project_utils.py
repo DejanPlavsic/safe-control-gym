@@ -1,4 +1,5 @@
 """AER1217 course project utility classes and functions.
+THIS FILE IS IDENTICAL TO THE ONE IN THE AER1217 COURSE PROJECT PROJECT UTILS I BELIEVE
 
 """
 import os

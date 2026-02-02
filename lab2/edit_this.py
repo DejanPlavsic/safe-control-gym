@@ -1,3 +1,4 @@
+# this is different from the edit this files inaer-course-project folder
 import os
 import math
 import time
@@ -111,7 +112,6 @@ class GeoController():
         cur_rpy = p.getEulerFromQuaternion(cur_quat)
         return rpm, pos_e, desire_rpy[2] - cur_rpy[2]
 
-
     def _compute_desired_force_and_euler(self,
                                  control_timestep,
                                  cur_pos,
@@ -135,14 +135,46 @@ class GeoController():
         
         #---------Lab2: Design a geomtric controller--------#
         #---------Task 1: Compute the desired acceration command--------#
+        ''' NOTE: How do we compute the desired acceleration command?
+        - Okay so it looks like we have info on the current velocity and position, as well as the target velocity and position.
+        - Use the formula in the lab handout to caulcate the acceleration desiered and acceleration feedback 
+
+        QUESTION: "what is the the differnce between target acceleration and desired acceleration ?" Check notes
+        ANSWER:
+        '''
+        # desired_acc = vel_e # this is assuming straight line motion, how would it change accounting for anglular motion?
+
+        acc_feedback = 
         
         #---------Task 2: Compute the desired thrust command--------#
+        ''' NOTE: How do we compute the desired thrust command?
+        - Okay so now we have the info reagrding desiered acceleration, so we can compute the disired thrust by just taking the forces on the system
+       
+        QUESTION: However do we use a small angles assumption or no ^ ?
+        ANSWER: 
+
+        - Acceleration should always be positive for this case, however should be a fall safe for negative desiered accelation if downwards)
+        '''
+        desired_thrust = desired_acc * self.mass # add fail-safe for negative z acceleration 
 
         #---------Task 3: Compute the desired attitude command--------#
+        ''' NOTE: How do we compute the desired attitude command? (refering to yaw, pitch, roll of the drone)
+        - Hmm this one might be a bit more complicated from the rest. I am assuming we want the drone to face where it is traveling to. 
+        - With this assumption we can say we want the raw to always be so the front of the drone is parallel wit the circle 
 
-    
+        QUESTION: How do we compute the desire angles based on a vector (inverse of transformation matrix)
+        ANSWER:
+
+        QUESTION: I am assuming the attitude has to be given in a global frame, would make no sense to have body frame attitude correct?
+        
+        '''
+        tangent_line = np.cross(target_vel, np.array([0, 0, 1])) # this should give us a tangent line to the circle
+        cur_rotation = "..." 
+        desired_euler = "..." # find the differnce as an angle between the current tangent line and the disired tangent line
+
+     
+        # NOTE: For export it looks like we need to export the desiered thrust and orinetation (desired_euler)
         return desired_thrust, desired_euler, pos_e
-
 
     def _compute_rpms(self,
                       control_timestep,
