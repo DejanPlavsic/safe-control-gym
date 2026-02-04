@@ -157,9 +157,7 @@ class GeoController():
         
         #---------Task 2: Compute the desired thrust command--------#
 
-        T_des = self.mass * np.linalg.norm(a_des) # why does this need to be normalized?
-        c_cmd = T_des # just following the formula from the lab handout so renaming the variable
-
+        desired_thrust = self.mass * np.linalg.norm(a_des) # why does this need to be normalized?
 
         #---------Task 3: Compute the desired attitude command--------#
         # already have desiered yaw calculated for us
