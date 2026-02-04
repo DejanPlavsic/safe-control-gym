@@ -137,12 +137,12 @@ class GeoController():
         #---------Task 1: Compute the desired acceration command--------#
 
         # finding the acceleration needed to follow the circular path
-        a_ref = target_acc # this is the acceleration it needs to follow the circular path assuming no forced act on it
+        a_ref = target_acc # GPT: "This comes from the trajectory generator (getRef())." 
 
         # finding the acceleration feedback (PID)
         k_p = np.array([25.0, 25.0, 32.0]) # for some reason in the lab they ask for this to be a diag matrix, but why?
         k_d = np.array([11.0, 11.0, 15.0])
-        a_fb = k_p * pos_e + k_d * vel_e # formula from lab handout (super cool seeing PID like this helps me understand it better)
+        a_fb = k_p * pos_e + k_d * vel_e # formula from lab handout (super cool seeing PID like this helps me understand it better) accounts for difference between actual and desired position and velocity (perfect circle)
 
         # finding the acceleration feedback (LQR)
         # INSERT LQR HERE
@@ -151,13 +151,14 @@ class GeoController():
         z_w = np.array([0, 0, 1]) # just z axis up
         g = self.grav # m/s^2
 
-        # calculating the desired acceleration
-        a_des = a_fb + a_ref + g*z_w # Q: how does this g*z_w term not make it drop down?, A:
+        # calculating the desired acceleration (GPT: "this single line is basically the entire philosophy of quadrotor position control packed into one equation)
+        a_des = a_fb + a_ref + g*z_w # Q: how does this g*z_w term not make it drop down?, A: You are acc adding it to counter the gracity which applied somehere else! if you just put a_des = g*z_w in theory if the system was stabel it should stay in the same place!
 
         
         #---------Task 2: Compute the desired thrust command--------#
 
-        desired_thrust = self.mass * np.linalg.norm(a_des) # why does this need to be normalized?
+        desired_thrust = self.mass * np.linalg.norm(a_des) # why does this need to be normalized? Answer: you acc aren;t normalizing it you are just taking the magnitude of the acceleration
+        # ^ THIS ABOVE PROUDCES A SCALAR NOT A VECTOR! (DRONE CAN ONLY APPLY THRUST ALONG ONE AXIS)
 
         #---------Task 3: Compute the desired attitude command--------#
         # already have desiered yaw calculated for us
