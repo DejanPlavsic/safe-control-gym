@@ -124,7 +124,6 @@ class GeoController():
                                  ):
         
         
-        desired_acc = target_acc
         desired_yaw = target_rpy[2]
 
         pos_e = target_pos - cur_pos
@@ -138,19 +137,19 @@ class GeoController():
         #---------Task 1: Compute the desired acceration command--------#
 
         # finding the acceleration needed to follow the circular path
-        a_ref = a_target # this is the acceleration it needs to follow the circular path assuming no forced act on it
+        a_ref = target_acc # this is the acceleration it needs to follow the circular path assuming no forced act on it
 
         # finding the acceleration feedback (PID)
         k_p = np.array([25.0, 25.0, 32.0]) # for some reason in the lab they ask for this to be a diag matrix, but why?
         k_d = np.array([11.0, 11.0, 15.0])
-        a_fb = - k_p * pos_e - k_d * vel_e # formula from lab handout (super cool seeing PID like this helps me understand it better)
+        a_fb = k_p * pos_e + k_d * vel_e # formula from lab handout (super cool seeing PID like this helps me understand it better)
 
         # finding the acceleration feedback (LQR)
         # INSERT LQR HERE
 
         # calculating forces acting on quadcopter (gravity)
         z_w = np.array([0, 0, 1]) # just z axis up
-        g = -9.81 # m/s^2
+        g = self.grav # m/s^2
 
         # calculating the desired acceleration
         a_des = a_fb + a_ref + g*z_w # Q: how does this g*z_w term not make it drop down?, A:
@@ -158,7 +157,7 @@ class GeoController():
         
         #---------Task 2: Compute the desired thrust command--------#
 
-        T_des = a_des * self.mass 
+        T_des = self.mass * np.linalg.norm(a_des) # why does this need to be normalized?
         c_cmd = T_des # just following the formula from the lab handout so renaming the variable
 
 
@@ -173,9 +172,8 @@ class GeoController():
         x_b_des = np.cross(y_c, z_b_des) / np.linalg.norm(np.cross(y_c, z_b_des))
         y_b_des = np.cross(z_b_des, x_b_des)
        
-        #z_c = np.array([0, 0, 1])
-        #desired_rot = np.array([x_c, y_c, z_c])
-        #desired_euler = (Rotation.from_matrix(desired_rot)).as_euler('XYZ', degrees=False)
+        R_des = np.column_stack((x_b_des, y_b_des, z_b_des)) # makes it into a 3x3 rotation matrix (x, y, z) axis
+        desired_euler = Rotation.from_matrix(R_des).as_euler('xyz', degrees=False) # from the scipy library converts the rotation matrix to euler angles
 
      
         # NOTE: For export it looks like we need to export the desiered thrust and orinetation (desired_euler)
