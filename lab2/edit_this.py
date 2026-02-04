@@ -134,43 +134,48 @@ class GeoController():
         desired_euler = np.zeros(3)
         
         #---------Lab2: Design a geomtric controller--------#
+        ''' REFERENCE LAB HANDOUT FOR THE FORMULAS. NOT SHOWN IN LECTURE'''
         #---------Task 1: Compute the desired acceration command--------#
-        ''' NOTE: How do we compute the desired acceleration command?
-        - Okay so it looks like we have info on the current velocity and position, as well as the target velocity and position.
-        - Use the formula in the lab handout to caulcate the acceleration desiered and acceleration feedback 
 
-        QUESTION: "what is the the differnce between target acceleration and desired acceleration ?" Check notes
-        ANSWER:
-        '''
-        # desired_acc = vel_e # this is assuming straight line motion, how would it change accounting for anglular motion?
+        # finding the acceleration needed to follow the circular path
+        a_ref = a_target # this is the acceleration it needs to follow the circular path assuming no forced act on it
 
-        acc_feedback = 
+        # finding the acceleration feedback (PID)
+        k_p = np.array([25.0, 25.0, 32.0]) # for some reason in the lab they ask for this to be a diag matrix, but why?
+        k_d = np.array([11.0, 11.0, 15.0])
+        a_fb = - k_p * pos_e - k_d * vel_e # formula from lab handout (super cool seeing PID like this helps me understand it better)
+
+        # finding the acceleration feedback (LQR)
+        # INSERT LQR HERE
+
+        # calculating forces acting on quadcopter (gravity)
+        z_w = np.array([0, 0, 1]) # just z axis up
+        g = -9.81 # m/s^2
+
+        # calculating the desired acceleration
+        a_des = a_fb + a_ref + g*z_w # Q: how does this g*z_w term not make it drop down?, A:
+
         
         #---------Task 2: Compute the desired thrust command--------#
-        ''' NOTE: How do we compute the desired thrust command?
-        - Okay so now we have the info reagrding desiered acceleration, so we can compute the disired thrust by just taking the forces on the system
-       
-        QUESTION: However do we use a small angles assumption or no ^ ?
-        ANSWER: 
 
-        - Acceleration should always be positive for this case, however should be a fall safe for negative desiered accelation if downwards)
-        '''
-        desired_thrust = desired_acc * self.mass # add fail-safe for negative z acceleration 
+        T_des = a_des * self.mass 
+        c_cmd = T_des # just following the formula from the lab handout so renaming the variable
+
 
         #---------Task 3: Compute the desired attitude command--------#
-        ''' NOTE: How do we compute the desired attitude command? (refering to yaw, pitch, roll of the drone)
-        - Hmm this one might be a bit more complicated from the rest. I am assuming we want the drone to face where it is traveling to. 
-        - With this assumption we can say we want the raw to always be so the front of the drone is parallel wit the circle 
+        # already have desiered yaw calculated for us
 
-        QUESTION: How do we compute the desire angles based on a vector (inverse of transformation matrix)
-        ANSWER:
+        # Yes these formulas from the notes work, but you need to understand them
+        x_c = np.array([math.cos(desired_yaw), math.sin(desired_yaw), 0])
+        y_c = np.array([-math.sin(desired_yaw), math.cos(desired_yaw), 0])
 
-        QUESTION: I am assuming the attitude has to be given in a global frame, would make no sense to have body frame attitude correct?
-        
-        '''
-        tangent_line = np.cross(target_vel, np.array([0, 0, 1])) # this should give us a tangent line to the circle
-        cur_rotation = "..." 
-        desired_euler = "..." # find the differnce as an angle between the current tangent line and the disired tangent line
+        z_b_des = a_des / np.linalg.norm(a_des)
+        x_b_des = np.cross(y_c, z_b_des) / np.linalg.norm(np.cross(y_c, z_b_des))
+        y_b_des = np.cross(z_b_des, x_b_des)
+       
+        #z_c = np.array([0, 0, 1])
+        #desired_rot = np.array([x_c, y_c, z_c])
+        #desired_euler = (Rotation.from_matrix(desired_rot)).as_euler('XYZ', degrees=False)
 
      
         # NOTE: For export it looks like we need to export the desiered thrust and orinetation (desired_euler)
