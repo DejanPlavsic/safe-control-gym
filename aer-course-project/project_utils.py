@@ -37,9 +37,7 @@ class Command(Enum):
 
 
 class PIDController():
-    """PID control class for Crazyflies.
-
-    """
+    # PID control class for Crazyflies.
 
     def __init__(self,
                  g: float = 9.8,
