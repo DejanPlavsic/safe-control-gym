@@ -58,7 +58,7 @@ def run(test=False):
         config.quadrotor_config['pyb_freq'] = 240
         config.quadrotor_config['gui'] = False
 
-    # Check firmware configuration.
+    # Check firmware configuration. (Checking for Error)
     if config.use_firmware and not FIRMWARE_INSTALLED:
         raise RuntimeError("[ERROR] Module 'cffirmware' not installed.")
     CTRL_FREQ = config.quadrotor_config['ctrl_freq']
@@ -97,7 +97,7 @@ def run(test=False):
 
     # NOTE: students can get access to the information of the gates and obstacles 
     #       when creating the controller object. 
-    ctrl = Controller(vicon_obs, info, config.use_firmware, verbose=config.verbose)
+    ctrl = Controller(vicon_obs, info, config.use_firmware, verbose=config.verbose) # initializes the controller
 
     # Create counters
     episodes_count = 1
@@ -145,7 +145,7 @@ def run(test=False):
     # Run an experiment.
     ep_start = time.time()
     first_ep_iteration = True
-    for i in range(config.num_episodes*CTRL_FREQ*env.EPISODE_LEN_SEC):
+    for i in range(config.num_episodes*CTRL_FREQ*env.EPISODE_LEN_SEC): # this loops though and runs the script 30 times per second, for 100 seconds (3000 total times)
         # label for if the trajectory is complete
         complete = False
         # Elapsed sim time.
@@ -175,33 +175,35 @@ def run(test=False):
                 done = False
                 info = {}
                 first_ep_iteration = False
-            command_type, args = ctrl.cmdFirmware(curr_time, vicon_obs, reward, done, info)
+            command_type, args = ctrl.cmdFirmware(curr_time, vicon_obs, reward, done, info) # gets the command type and args info for exact time step
             
             # --- debug 
             # print(vicon_obs)
 
             # Select interface.
-            if command_type == Command.FULLSTATE:
+            if command_type == Command.FULLSTATE: # command type 1
                 firmware_wrapper.sendFullStateCmd(*args, curr_time)
-            elif command_type == Command.TAKEOFF:
+            elif command_type == Command.TAKEOFF: # command type 2
                 firmware_wrapper.sendTakeoffCmd(*args)
-            elif command_type == Command.LAND:
+            elif command_type == Command.LAND: # command type 3
                 firmware_wrapper.sendLandCmd(*args)
-            elif command_type == Command.STOP:
+            elif command_type == Command.STOP: # command type 4
                 firmware_wrapper.sendStopCmd()
                 # indicate the trajectory is complete
                 complete = True
-            elif command_type == Command.GOTO:
+            elif command_type == Command.GOTO: # command type 5
                 firmware_wrapper.sendGotoCmd(*args)
-            elif command_type == Command.NOTIFYSETPOINTSTOP:
+            elif command_type == Command.NOTIFYSETPOINTSTOP: # command type 6
                 firmware_wrapper.notifySetpointStop()
-            elif command_type == Command.NONE:
+            elif command_type == Command.NONE: # command type 0
                 pass
             else:
                 raise ValueError("[ERROR] Invalid command_type.")
 
             # Step the environment.
-            obs, reward, done, info, action = firmware_wrapper.step(curr_time, action)
+            obs, reward, done, info, action = firmware_wrapper.step(curr_time, action) # updates the environment based on the action
+
+        # This is if you are not using the firmware, and you are using the PID controller instead
         else:
             if first_ep_iteration:
                 reward = 0

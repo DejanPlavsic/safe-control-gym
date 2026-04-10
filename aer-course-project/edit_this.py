@@ -1,62 +1,23 @@
-"""Write your proposed algorithm.
-[NOTE]: The idea for the final project is to plan the trajectory based on a sequence of gates 
-while considering the uncertainty of the obstacles. The students should show that the proposed 
-algorithm is able to safely navigate a quadrotor to complete the task in both simulation and
-real-world experiments.
-
-Then run:
-
-    $ python3 final_project.py --overrides ./getting_started.yaml
-
-Tips:
-    Search for strings `INSTRUCTIONS` and `REPLACE THIS (START)` in this file.
-
-    Change the code between the 5 blocks starting with
-        #########################
-        # REPLACE THIS (START) ##
-        #########################
-    and ending with
-        #########################
-        # REPLACE THIS (END) ####
-        #########################
-    with your own code.
-
-    They are in methods:
-        1) planning
-        2) cmdFirmware
-
-"""
 import numpy as np
-
 from collections import deque
-
 try:
     from project_utils import Command, PIDController, timing_step, timing_ep, plot_trajectory, draw_trajectory
 except ImportError:
     # PyTest import.
     from .project_utils import Command, PIDController, timing_step, timing_ep, plot_trajectory, draw_trajectory
 
-#########################
-# REPLACE THIS (START) ##
-#########################
-
-# Optionally, create and import modules you wrote.
-# Please refrain from importing large or unstable 3rd party packages.
+# custom UTILS is just a file where you can put your own cutsom functions to import into the controller
 try:
-    import example_custom_utils as ecu
+    import dejan_custom_utils as dcu # dcu stands for dejan custom utils
 except ImportError:
     # PyTest import.
-    from . import example_custom_utils as ecu
+    from . import dejan_custom_utils as dcu
 
-#########################
-# REPLACE THIS (END) ####
-#########################
 
 class Controller():
-    """Template controller class.
+    #Template controller class.
 
-    """
-
+    # initializes the controller
     def __init__(self,
                  initial_obs,
                  initial_info,
@@ -96,7 +57,7 @@ class Controller():
 
         # Check for pycffirmware.
         if use_firmware:
-            self.ctrl = None
+            self.ctrl = None # do not use PID controller, instead use the built in firmware controller
         else:
             # Initialize a simple PID Controller for debugging and test.
             # Do NOT use for the IROS 2022 competition. 
@@ -118,20 +79,17 @@ class Controller():
         # Draw the trajectory on PyBullet's GUI.
         draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
-
+    # this function is where we will put our trajectory, important part is that you define the ref_x, ref_y, and ref_z variables
     def planning(self, use_firmware, initial_info):
         """Trajectory planning algorithm"""
-        #########################
-        # REPLACE THIS (START) ##
-        #########################
-        ## generate waypoints for planning
-        
+ 
+        # Example Code Provided By Course
         '''
         # Call a function in module `example_custom_utils`.
         #ecu.exampleFunction() # currently function is notn used and does nothing so I commented it out
 
         # initial waypoint (initial waypoint is like the starting position, kinda weird but 0 is for x, 2 is for y, and 4 appears to be for z. Not sure where this initial observation is coming form))
-        if use_firmware: # honestly not too sure what "use_formware" means but it ajusts the starting height of the drone, depensing on if it's on or off
+        if use_firmware: # honestly not too sure what "use_firmware" means but it ajusts the starting height of the drone, depensing on if it's on or off
             waypoints = [(self.initial_obs[0], self.initial_obs[2], initial_info["gate_dimensions"]["tall"]["height"])]  # Height is hardcoded scenario knowledge.
         else:
             waypoints = [(self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])]
@@ -159,47 +117,8 @@ class Controller():
         self.ref_z = fz(t_scaled)
         '''
 
+        # Lab 2 Code
         # Above is the provided example code, now I will try to make the circle
-
-        # Attempt #1: Using sympy to define the path (not efficient but it works)
-        '''
-        # initial waypoint (initial waypoint is like the starting position, kinda weird but 0 is for x, 2 is for y, and 4 appears to be for z. Not sure where this initial observation is coming form))
-        t_steps = 30 # 30 steps for the circle
-        circle_radius = 1 # m
-        circle_center = (0, -3, 1) # m
-        import sympy as sp
-        angle = sp.Symbol('angle') # defining angle as a variable
-
-        # defining the functions of the path
-        func_x = sp.cos(angle)*radius + circle_center[0]
-        func_y = sp.sin(angle)*radius + circle_center[1]
-        func_z = circle_center[2]
-        
-        # adding sampling points info
-        duration = 15 # s (try making this faster after I'm curious what will happen)
-        t_scaled = np.linspace(t[0], t[-1], int(duration*self.CTRL_FREQ)) # t converted to actual time
-        angle_values = np.linspace(0, 2*np.pi, t_steps)
-        
-        self.ref_x = func_x(angle_values)
-        self.ref_y = func_y(angle_values)
-        self.ref_z = np.ones(len(t_scaled))*circle_center[2]
-        '''
-        '''
-        # Attempt #2: Using numpy to define the path (more efficient)
-        circle_radius = 1 # m
-        circle_center = (0, -3, 1) # m
-        
-        # adding sampling points info
-        duration = 15 # s (try making this faster after I'm curious what will happen)
-        t_scaled = np.linspace(0, duration, int(duration*self.CTRL_FREQ))
-        angle_values = np.linspace(0, 2*np.pi, int(duration*self.CTRL_FREQ))
-        
-        # defining the functions of the path
-        self.ref_x = np.cos(angle_values)*circle_radius + circle_center[0]
-        self.ref_y = np.sin(angle_values)*circle_radius + circle_center[1]
-        self.ref_z = np.ones(len(angle_values)) * circle_center[2]
-        '''
-        # this version above doesn't work since you need waypoints for this code to work
         # Attempt #3: Using Waypoints
         circle_radius = 1 # m
         circle_center = (0, -3, 1) # m
@@ -219,13 +138,15 @@ class Controller():
             [circle_center[0], circle_center[1], circle_center[2]],
             ])
 
+        
+        # Final Project Code
+        #dcu.exampleFunction() # currently function is not used and does nothing so I commented it out
 
-        #########################
-        # REPLACE THIS (END) ####
-        #########################
+
 
         return t_scaled
 
+    # this function is only used when we use the high level controls from the crazyswarm library which do everything for you basically, if this runs cmdSimOnly will not run
     def cmdFirmware(self,
                     time,
                     obs,
@@ -252,13 +173,14 @@ class Controller():
             List: arguments for the type of command (see comments in class `Command`)
 
         """
-        if self.ctrl is not None:
+        # This line below makes it so if you are using the PID Controller, you will get an error, this function only works if you are using the built in high level crazy fly commmands
+        if self.ctrl is not None: 
             raise RuntimeError("[ERROR] Using method 'cmdFirmware' but Controller was created with 'use_firmware' = False.")
 
         # [INSTRUCTIONS] 
         # self.CTRL_FREQ is 30 (set in the getting_started.yaml file) 
         # control input iteration indicates the number of control inputs sent to the quadrotor
-        iteration = int(time*self.CTRL_FREQ)
+        iteration = int(time*self.CTRL_FREQ) # converts time to control steps, ie. at iteartion 90, the time is 3 seconds
 
         #########################
         # REPLACE THIS (START) ##
@@ -271,26 +193,29 @@ class Controller():
             height = 1
             duration = 2
 
-            command_type = Command(2)  # Take-off.
-            args = [height, duration]
+            command_type = Command(2)  # Take-off. # Command 2 is the takeoff command (crazyswarm build in function)
+            args = [height, duration] # this function is called at every time step, so at the end of this function it returns command type and args
 
         # [INSTRUCTIONS] Example code for using cmdFullState interface   
+        # Runs between 3 and 20 seconds
         elif iteration >= 3*self.CTRL_FREQ and iteration < 20*self.CTRL_FREQ:
-            step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) -1)
+            step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) -1) # the min is just for protection, this line just tells you what step you are on
             target_pos = np.array([self.ref_x[step], self.ref_y[step], self.ref_z[step]])
-            target_vel = np.zeros(3)
-            target_acc = np.zeros(3)
-            target_yaw = 0.
+            target_vel = np.zeros(3) # you are not providing any desired velocity or acceleration commands, only position
+            target_acc = np.zeros(3) 
+            target_yaw = 0. # you are not providing any desired yaw or angular rate commands, only position
             target_rpy_rates = np.zeros(3)
 
             command_type = Command(1)  # cmdFullState.
             args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
 
+        # Runs at 20 seconds, just to run command 6 which lets you go back from low level control to high level control
         elif iteration == 20*self.CTRL_FREQ:
             command_type = Command(6)  # Notify setpoint stop.
             args = []
 
        # [INSTRUCTIONS] Example code for using goTo interface 
+       # at 20 seconds + 1 step, you use the high level control to go the last point on the path, in this case end of ref_x and ref_y
         elif iteration == 20*self.CTRL_FREQ+1:
             x = self.ref_x[-1]
             y = self.ref_y[-1]
@@ -301,6 +226,7 @@ class Controller():
             command_type = Command(5)  # goTo.
             args = [[x, y, z], yaw, duration, False]
 
+        # at 23 seconds runs another goTo command to go back to the starting position (takes 6 seconds)
         elif iteration == 23*self.CTRL_FREQ:
             x = self.initial_obs[0]
             y = self.initial_obs[2]
@@ -311,6 +237,7 @@ class Controller():
             command_type = Command(5)  # goTo.
             args = [[x, y, z], yaw, duration, False]
 
+        # at 30 seconds, you land the drone with command 3
         elif iteration == 30*self.CTRL_FREQ:
             height = 0.
             duration = 3
@@ -318,10 +245,12 @@ class Controller():
             command_type = Command(3)  # Land.
             args = [height, duration]
 
+        # at 33 seconds - 1 step, you send the stop command to the drone to stop the trajectory
         elif iteration == 33*self.CTRL_FREQ-1:
             command_type = Command(4)  # STOP command to be sent once the trajectory is completed.
             args = []
 
+        # For all other cases, you do nothing
         else:
             command_type = Command(0)  # None.
             args = []
@@ -332,6 +261,7 @@ class Controller():
 
         return command_type, args
 
+    # this function runs ONLY WHEN YOU ARE NOT USING cmdFirmware(), honeselty no clue when we would ever use this but this basically just lets you tru it with the build in PID controller 
     def cmdSimOnly(self,
                    time,
                    obs,
@@ -373,6 +303,7 @@ class Controller():
 
         return target_p, target_v
 
+    # just resets the buffers and counters
     def reset(self):
         """Initialize/reset data buffers and counters.
 
