@@ -117,12 +117,13 @@ class Controller():
         self.ref_z = fz(t_scaled)
         '''
 
+        '''
         # Lab 2 Code
         # Above is the provided example code, now I will try to make the circle
         # Attempt #3: Using Waypoints
         circle_radius = 1 # m
         circle_center = (0, -3, 1) # m
-        t = np.arange(30)
+        # t = np.arange(30)
         
         # adding sampling points info
         duration = 15 # s (try making this faster after I'm curious what will happen)
@@ -137,10 +138,26 @@ class Controller():
         self.waypoints = np.array([
             [circle_center[0], circle_center[1], circle_center[2]],
             ])
-
+        '''
         
         # Final Project Code
         #dcu.exampleFunction() # currently function is not used and does nothing so I commented it out
+        gates_order = [1, 2, 3]
+        duration = 19 # seconds, becuase 20 seconds is hard coded into cmdFirmware(), you must change it before you can make this greater than 20 seconds
+        t_scaled = np.linspace(0, duration, int(duration*self.CTRL_FREQ)) # covering the entire time duration
+        time_per_gate = duration / len(gates_order)
+        step_per_gate = floor(time_per_gate * self.CTRL_FREQ) # have to floor it because you can't have a fraction of a step
+
+        for i in gates_order:
+            gate_pos = ...
+            starting_step = i * step_per_gate
+
+            for step in range(starting_step, starting_step + step_per_gate):
+
+
+
+
+
 
 
 
@@ -185,7 +202,7 @@ class Controller():
         #########################
         # REPLACE THIS (START) ##
         #########################
-
+        
         # print("The info. of the gates ")
         # print(self.NOMINAL_GATES)
 
