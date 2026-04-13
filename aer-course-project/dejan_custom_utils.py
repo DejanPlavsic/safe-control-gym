@@ -1,12 +1,7 @@
-"""Example utility module.
 
-Please use a file like this one to add extra functions.
+class node:
 
-"""
-
-def exampleFunction():
-    """Example of user-defined function.
-
-    """
-    x = -1
-    return x
+    
+def rrt_dejan(initial_position, target_position, obstacles, gates, bounds):
+    """RRT* algorithm"""
+    pass

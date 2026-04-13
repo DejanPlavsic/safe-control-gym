@@ -141,25 +141,33 @@ class Controller():
         '''
         
         # Final Project Code
-        #dcu.exampleFunction() # currently function is not used and does nothing so I commented it out
+        starting_position = (self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])
+        final_position = (initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4])
         gates_order = [1, 2, 3]
         duration = 19 # seconds, becuase 20 seconds is hard coded into cmdFirmware(), you must change it before you can make this greater than 20 seconds
         t_scaled = np.linspace(0, duration, int(duration*self.CTRL_FREQ)) # covering the entire time duration
         time_per_gate = duration / len(gates_order)
         step_per_gate = floor(time_per_gate * self.CTRL_FREQ) # have to floor it because you can't have a fraction of a step
 
-        for i in gates_order:
-            gate_pos = ...
-            starting_step = i * step_per_gate
+        for i, gate_id in enumerate(gates_order):
 
-            for step in range(starting_step, starting_step + step_per_gate):
+            # specify the starting position
+            if i == 0: # if first test it is starting from the starting position
+                initial_position = (self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])
+            else:
+                initial_gate = gate_pos_initial[gates_order[i-1]]
+                initial_position = (initial_gate[0], initial_gate[1], initial_gate[2])
 
+            # specify the target position
+            if i == len(gates_order) - 1: # if last test the target position is the final position
+                target_position = final_position # x,y,z coordinates of final target position
+            else:
+                target_gate_pos = self.NOMINAL_GATES[gate_id] # this gets all the data about the gate position
+                target_position = (target_gate_pos[0], target_gate_pos[1], target_gate_pos[2])
 
-
-
-
-
-
+            # calling rrt_star algo 
+            dcu.rrt_dejan(initial_position, target_position, obstacles=self.NOMINAL_OBSTACLES, gates=self.NOMINAL_GATES, bounds=bounds)
+            
 
         return t_scaled
 
