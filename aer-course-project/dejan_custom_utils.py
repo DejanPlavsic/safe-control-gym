@@ -1,5 +1,8 @@
 # AI AKNOWLEDGEMENT: Used Cursor AI to generate repeated lines of codes, and to complete lines of code via Cursor auto-complete function, no prompt given.
 # Took inspiration from code in class notes
+import math
+import random
+import numpy as np
 
 class Node:
     def __init__(self, position_x, position_y, node_id, childern_node_id = None, cost=0):
@@ -210,9 +213,9 @@ def rrt_dejan(initial_position, target_position, obstacles, gates, bounds):
 
             random_point_x = random.uniform(bounds["x"][0], bounds["x"][1]) # random uniformly distributed point in bounds
             random_point_y = random.uniform(bounds["y"][0], bounds["y"][1])
-            if i > 100 and i % 5 == 0:
-                random_point_x = target_position[0]
-                random_point_y = target_position[1]
+            #if i > 100 and i % 5 == 0:
+            #    random_point_x = target_position[0]
+            #    random_point_y = target_position[1]
             
 
             #nearest_node = find_nearest_node(Nodes, random_point_x, random_point_y)
