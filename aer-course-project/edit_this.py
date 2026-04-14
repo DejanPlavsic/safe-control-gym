@@ -1,4 +1,5 @@
 import numpy as np
+from math import floor
 from collections import deque
 try:
     from project_utils import Command, PIDController, timing_step, timing_ep, plot_trajectory, draw_trajectory
@@ -141,13 +142,16 @@ class Controller():
         '''
         
         # Final Project Code
-        starting_position = (self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])
-        final_position = (initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4])
+        starting_position = (self.initial_obs[0], self.initial_obs[2], 1)
+        final_position = (initial_info["x_reference"][0], initial_info["x_reference"][2], 1)
         gates_order = [1, 2, 3]
         duration = 19 # seconds, becuase 20 seconds is hard coded into cmdFirmware(), you must change it before you can make this greater than 20 seconds
-        t_scaled = np.linspace(0, duration, int(duration*self.CTRL_FREQ)) # covering the entire time duration
-        time_per_gate = duration / len(gates_order)
+        #t_scaled = np.linspace(0, duration, int(duration*self.CTRL_FREQ)) # covering the entire time duration
+        time_per_gate = duration / (len(gates_order) + 1)
         step_per_gate = floor(time_per_gate * self.CTRL_FREQ) # have to floor it because you can't have a fraction of a step
+        bounds = {"x": [-3.5, 3.5], "y": [-3.5, 3.5]}
+        ref_x, ref_y, ref_z = [], [], []
+        all_waypoints = []
 
         for i, gate_id in enumerate(gates_order):
 
@@ -166,9 +170,23 @@ class Controller():
                 target_position = (target_gate_pos[0], target_gate_pos[1], target_gate_pos[2])
 
             # calling rrt_star algo 
-            dcu.rrt_dejan(initial_position, target_position, obstacles=self.NOMINAL_OBSTACLES, gates=self.NOMINAL_GATES, bounds=bounds)
+            waypoints = dcu.rrt_dejan(initial_position, target_position, obstacles=self.NOMINAL_OBSTACLES, gates=self.NOMINAL_GATES, bounds=bounds)
+            all_waypoints.extend(waypoints.tolist())
+            if i == len(gates_order) - 1:
+                all_waypoints.append(final_position)
             
-
+            # converting waypoints into functions
+            deg = 6 # 6th degree polynomial fit 
+            t_single_step = np.linspace(0, time_per_gate, step_per_gate)
+            fx = np.poly1d(np.polyfit(t_single_step, waypoints[:,0], deg))
+            fy = np.poly1d(np.polyfit(t_single_step, waypoints[:,1], deg))
+            fz = np.poly1d(np.polyfit(t_single_step, waypoints[:,2], deg))
+            ref_x = np.concatenate([ref_x, fx(t_scaled)])
+            ref_y = np.concatenate([ref_y, fy(t_scaled)])
+            ref_z = np.concatenate([ref_z, fz(t_scaled)])
+        
+        all_waypoints = np.array(all_waypoints)
+        self.ref_x, self.ref_y, self.ref_z = np.array(ref_x), np.array(ref_y), np.array(ref_z)
         return t_scaled
 
     # this function is only used when we use the high level controls from the crazyswarm library which do everything for you basically, if this runs cmdSimOnly will not run
