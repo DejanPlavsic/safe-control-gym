@@ -83,24 +83,44 @@ def check_collision(point_A_x, point_A_y, point_B_x, point_B_y, simplified_obsta
     return False
 
        
-def define_obstacle_boundaries(obstacles, gates):
+def define_obstacle_boundaries(obstacles, gates, target_gate_id):
     #simplified_obstacles = np.zeros(3, len(obstacles)+2*len(gates)) # for each gate it has 2 poles which we will treat as going from ground to cieling as a simplification
     simplified_obstacles = []
-    gate_width = 0.26 # m
+    gate_width = 0.23 # m
     
     # defining obstacle boundaries
     for obstacle in obstacles:
         simplified_obstacles.append([obstacle[0], obstacle[1]]) # x, y
 
     # defining gate boundaries
-    for gate in gates:
+    for i, gate in enumerate(gates):
+
         gate_center_x, gate_center_y, gate_angle = gate[0], gate[1], gate[5]
         gate_pole_1 = [gate_center_x + math.cos(gate_angle) * gate_width, gate_center_y + math.sin(gate_angle) * gate_width]
         gate_pole_2 = [gate_center_x - math.cos(gate_angle) * gate_width, gate_center_y - math.sin(gate_angle) * gate_width]
         simplified_obstacles.append(gate_pole_1)
         simplified_obstacles.append(gate_pole_2)
 
+        if i != target_gate_id:
+            gate_center = [gate_center_x, gate_center_y]
+            simplified_obstacles.append(gate_center)
+
     return simplified_obstacles
+
+
+def define_before_and_after_gates(gate_info, start_position):
+    gate_center_x, gate_center_y, gate_angle = gate_info[0], gate_info[1], gate_info[5]
+    distance_to_gate = 0.22 # m
+    infront_gate_position = [gate_center_x + math.sin(gate_angle) * distance_to_gate, gate_center_y + math.cos(gate_angle) * distance_to_gate, 1]
+    behind_gate_position = [gate_center_x - math.sin(gate_angle) * distance_to_gate, gate_center_y - math.cos(gate_angle) * distance_to_gate, 1]
+    
+    distance_to_front = distance_between_points(start_position[0], start_position[1], infront_gate_position[0], infront_gate_position[1])
+    distance_to_back = distance_between_points(start_position[0], start_position[1], behind_gate_position[0], behind_gate_position[1])
+
+    if distance_to_front < distance_to_back:
+        return infront_gate_position, behind_gate_position
+    else:
+        return behind_gate_position, infront_gate_position
 
 
 def find_path(Nodes, target_node): # this finds the optimal path from the node at the target to home
@@ -192,12 +212,12 @@ def convert_path_to_waypoints(nodes_positions, path, target_position):
     return waypoints
         
 
-def rrt_dejan(initial_position, target_position, obstacles, gates, bounds):
+def rrt_dejan(initial_position, target_position, obstacles, gates, bounds, target_gate_id):
     #start_time = time.time()
     Nodes = [] # initializing nodes list
     Nodes.append(Node(initial_position[0], initial_position[1], 0))
     step_size = 0.25
-    simplified_obstacles = define_obstacle_boundaries(obstacles, gates) # initializing obstacle boundaries (when code is running put this in planning not here)
+    simplified_obstacles = define_obstacle_boundaries(obstacles, gates, target_gate_id) # initializing obstacle boundaries (when code is running put this in planning not here)
 
     nodes_positions = [] # this is for the vectorized version of nearest nodes only
     nodes_positions.append([initial_position[0], initial_position[1]])
@@ -206,7 +226,7 @@ def rrt_dejan(initial_position, target_position, obstacles, gates, bounds):
 
     valid_path_found = False # initializing to False
     i = 0
-    while i < 500: # won't stop running until it finds a path between initial and target position
+    while i < 3000: # won't stop running until it finds a path between initial and target position
 
         valid_point_found = False # initializing to False
         while valid_point_found == False: # won't stop running until it finds a valid point

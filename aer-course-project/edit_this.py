@@ -79,7 +79,7 @@ class Controller():
         plot_trajectory(t_scaled, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
         # Draw the trajectory on PyBullet's GUI.
-        draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
+        #draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
     # this function is where we will put our trajectory, important part is that you define the ref_x, ref_y, and ref_z variables
     def planning(self, use_firmware, initial_info):
@@ -146,7 +146,7 @@ class Controller():
         starting_position = (self.initial_obs[0], self.initial_obs[2], 1)
         final_position = (initial_info["x_reference"][0], initial_info["x_reference"][2], 1)
         gates_order = [0, 1, 2, 3]
-        duration = 19 # seconds, becuase 20 seconds is hard coded into cmdFirmware(), you must change it before you can make this greater than 20 seconds
+        duration = 29 # seconds, becuase 20 seconds is hard coded into cmdFirmware(), you must change it before you can make this greater than 20 seconds
         #t_scaled = np.linspace(0, duration, int(duration*self.CTRL_FREQ)) # covering the entire time duration
         time_per_gate = duration / (len(gates_order) + 1)
         step_per_gate = floor(time_per_gate * self.CTRL_FREQ) # have to floor it because you can't have a fraction of a step
@@ -158,23 +158,32 @@ class Controller():
 
             # specify the starting position
             if i == 0: # if first test it is starting from the starting position
-                initial_position = (self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])
+                initial_position = (self.initial_obs[0], self.initial_obs[2], 1)
             else:
                 initial_gate = self.NOMINAL_GATES[gates_order[i-1]]
-                initial_position = (initial_gate[0], initial_gate[1], initial_gate[2])
+                #initial_position = (initial_gate[0], initial_gate[1], initial_gate[2])
+                initial_position = after_gate_position
 
             # specify the target position
             if i == len(gates_order) - 1: # if last test the target position is the final position
                 target_position = final_position # x,y,z coordinates of final target position
             else:
                 target_gate_pos = self.NOMINAL_GATES[gate_id] # this gets all the data about the gate position
-                target_position = (target_gate_pos[0], target_gate_pos[1], target_gate_pos[2])
+                before_gate_position, after_gate_position = dcu.define_before_and_after_gates(target_gate_pos, initial_position) # to make sure it flies through the gate, we need to define the before and after gate positions
+                target_position = before_gate_position
 
             # calling rrt_star algo 
-            waypoints = np.array(dcu.rrt_dejan(initial_position, target_position, obstacles=self.NOMINAL_OBSTACLES, gates=self.NOMINAL_GATES, bounds=bounds))
+            waypoints = np.array(dcu.rrt_dejan(initial_position, target_position, obstacles=self.NOMINAL_OBSTACLES, gates=self.NOMINAL_GATES, bounds=bounds, target_gate_id=gate_id))
             all_waypoints.extend(waypoints.tolist())
-            if i == len(gates_order) - 1:
+
+            if i == 0:
+                waypoints = np.vstack([initial_position,waypoints])
+            if i != len(gates_order) - 1: # if not last gate, the target position is the after gate position
+                all_waypoints.append(after_gate_position)
+                waypoints = np.vstack([waypoints, after_gate_position])
+            elif i == len(gates_order) - 1: # if last gate, the target position is the final position
                 all_waypoints.append(final_position)
+                waypoints = np.vstack([waypoints, final_position])
             
             # converting waypoints into functions
             '''
@@ -188,7 +197,7 @@ class Controller():
             ref_z = np.concatenate([ref_z, fz(t_scaled)])
             '''
             # ChatGPT Debug Code (AI AKNOWLEDGMENT)
-            deg = min(3, len(waypoints) - 1)  # safer than 6 when you only have a few waypoints
+            deg = min(3, len(waypoints) -1 )  # safer than 6 when you only have a few waypoints
 
             t_waypoints = np.arange(len(waypoints))
             t_eval = np.linspace(0, len(waypoints) - 1, step_per_gate)
@@ -252,14 +261,14 @@ class Controller():
 
         if iteration == 0:
             height = 1
-            duration = 2
+            duration = 4
 
             command_type = Command(2)  # Take-off. # Command 2 is the takeoff command (crazyswarm build in function)
             args = [height, duration] # this function is called at every time step, so at the end of this function it returns command type and args
 
         # [INSTRUCTIONS] Example code for using cmdFullState interface   
         # Runs between 3 and 20 seconds
-        elif iteration >= 3*self.CTRL_FREQ and iteration < 20*self.CTRL_FREQ:
+        elif iteration >= 5*self.CTRL_FREQ and iteration < 35*self.CTRL_FREQ:
             step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) -1) # the min is just for protection, this line just tells you what step you are on
             target_pos = np.array([self.ref_x[step], self.ref_y[step], self.ref_z[step]])
             target_vel = np.zeros(3) # you are not providing any desired velocity or acceleration commands, only position
@@ -271,13 +280,13 @@ class Controller():
             args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
 
         # Runs at 20 seconds, just to run command 6 which lets you go back from low level control to high level control
-        elif iteration == 20*self.CTRL_FREQ:
+        elif iteration == 35*self.CTRL_FREQ:
             command_type = Command(6)  # Notify setpoint stop.
             args = []
 
        # [INSTRUCTIONS] Example code for using goTo interface 
        # at 20 seconds + 1 step, you use the high level control to go the last point on the path, in this case end of ref_x and ref_y
-        elif iteration == 20*self.CTRL_FREQ+1:
+        elif iteration == 35*self.CTRL_FREQ+1:
             x = self.ref_x[-1]
             y = self.ref_y[-1]
             z = 1.5 
@@ -288,7 +297,7 @@ class Controller():
             args = [[x, y, z], yaw, duration, False]
 
         # at 23 seconds runs another goTo command to go back to the starting position (takes 6 seconds)
-        elif iteration == 23*self.CTRL_FREQ:
+        elif iteration == 38*self.CTRL_FREQ:
             x = self.initial_obs[0]
             y = self.initial_obs[2]
             z = 1.5
@@ -299,7 +308,7 @@ class Controller():
             args = [[x, y, z], yaw, duration, False]
 
         # at 30 seconds, you land the drone with command 3
-        elif iteration == 30*self.CTRL_FREQ:
+        elif iteration == 45*self.CTRL_FREQ:
             height = 0.
             duration = 3
 
@@ -307,7 +316,7 @@ class Controller():
             args = [height, duration]
 
         # at 33 seconds - 1 step, you send the stop command to the drone to stop the trajectory
-        elif iteration == 33*self.CTRL_FREQ-1:
+        elif iteration == 48*self.CTRL_FREQ-1:
             command_type = Command(4)  # STOP command to be sent once the trajectory is completed.
             args = []
 
